@@ -1,0 +1,339 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+from matplotlib import pyplot as plt
+
+data = pd.read_csv('/kaggle/input/digit-recognizer/train.csv')
+
+
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+/kaggle/input/digit-recognizer/sample_submission.csv
+/kaggle/input/digit-recognizer/train.csv
+/kaggle/input/digit-recognizer/test.csv
+data = np.array(data)
+m, n = data.shape
+np.random.shuffle(data)
+
+data_dev = data[0:1000].T
+Y_dev = data_dev[0]
+X_dev = data_dev[1:n]
+X_dev = X_dev / 255.
+
+data_train = data[1000:m].T
+Y_train = data_train[0]
+X_train = data_train[1:n]
+X_train = X_train / 255.
+_,m_train = X_train.shape
+Y_train
+array([3, 9, 4, ..., 1, 4, 9])
+def init_params():
+    W1 = np.random.rand(10, 784) - 0.5
+    b1 = np.random.rand(10, 1) - 0.5
+    W2 = np.random.rand(10, 10) - 0.5
+    b2 = np.random.rand(10, 1) - 0.5
+    return W1, b1, W2, b2
+
+def ReLU(Z):
+    return np.maximum(Z, 0)
+
+def softmax(Z):
+    A = np.exp(Z) / sum(np.exp(Z))
+    return A
+    
+def forward_prop(W1, b1, W2, b2, X):
+    Z1 = W1.dot(X) + b1
+    A1 = ReLU(Z1)
+    Z2 = W2.dot(A1) + b2
+    A2 = softmax(Z2)
+    return Z1, A1, Z2, A2
+
+def ReLU_deriv(Z):
+    return Z > 0
+
+def one_hot(Y):
+    one_hot_Y = np.zeros((Y.size, Y.max() + 1))
+    one_hot_Y[np.arange(Y.size), Y] = 1
+    one_hot_Y = one_hot_Y.T
+    return one_hot_Y
+
+def backward_prop(Z1, A1, Z2, A2, W1, W2, X, Y):
+    one_hot_Y = one_hot(Y)
+    dZ2 = A2 - one_hot_Y
+    dW2 = 1 / m * dZ2.dot(A1.T)
+    db2 = 1 / m * np.sum(dZ2)
+    dZ1 = W2.T.dot(dZ2) * ReLU_deriv(Z1)
+    dW1 = 1 / m * dZ1.dot(X.T)
+    db1 = 1 / m * np.sum(dZ1)
+    return dW1, db1, dW2, db2
+
+def update_params(W1, b1, W2, b2, dW1, db1, dW2, db2, alpha):
+    W1 = W1 - alpha * dW1
+    b1 = b1 - alpha * db1    
+    W2 = W2 - alpha * dW2  
+    b2 = b2 - alpha * db2    
+    return W1, b1, W2, b2
+def get_predictions(A2):
+    return np.argmax(A2, 0)
+
+def get_accuracy(predictions, Y):
+    print(predictions, Y)
+    return np.sum(predictions == Y) / Y.size
+
+def gradient_descent(X, Y, alpha, iterations):
+    W1, b1, W2, b2 = init_params()
+    for i in range(iterations):
+        Z1, A1, Z2, A2 = forward_prop(W1, b1, W2, b2, X)
+        dW1, db1, dW2, db2 = backward_prop(Z1, A1, Z2, A2, W1, W2, X, Y)
+        W1, b1, W2, b2 = update_params(W1, b1, W2, b2, dW1, db1, dW2, db2, alpha)
+        if i % 10 == 0:
+            print("Iteration: ", i)
+            predictions = get_predictions(A2)
+            print(get_accuracy(predictions, Y))
+    return W1, b1, W2, b2
+W1, b1, W2, b2 = gradient_descent(X_train, Y_train, 0.10, 500)
+Iteration:  0
+[7 0 9 ... 4 8 0] [3 9 4 ... 1 4 9]
+0.04541463414634146
+Iteration:  10
+[3 1 9 ... 4 8 0] [3 9 4 ... 1 4 9]
+0.1572439024390244
+Iteration:  20
+[3 1 9 ... 4 7 1] [3 9 4 ... 1 4 9]
+0.2340487804878049
+Iteration:  30
+[3 4 9 ... 4 7 6] [3 9 4 ... 1 4 9]
+0.293390243902439
+Iteration:  40
+[3 4 9 ... 1 7 6] [3 9 4 ... 1 4 9]
+0.3405365853658537
+Iteration:  50
+[1 4 9 ... 1 7 6] [3 9 4 ... 1 4 9]
+0.3818048780487805
+Iteration:  60
+[1 4 9 ... 1 9 6] [3 9 4 ... 1 4 9]
+0.42697560975609755
+Iteration:  70
+[1 4 9 ... 1 9 4] [3 9 4 ... 1 4 9]
+0.47821951219512193
+Iteration:  80
+[1 4 9 ... 1 9 4] [3 9 4 ... 1 4 9]
+0.5313170731707317
+Iteration:  90
+[1 4 9 ... 1 9 4] [3 9 4 ... 1 4 9]
+0.5762195121951219
+Iteration:  100
+[1 4 9 ... 1 4 4] [3 9 4 ... 1 4 9]
+0.6111707317073171
+Iteration:  110
+[1 9 9 ... 1 4 4] [3 9 4 ... 1 4 9]
+0.6413170731707317
+Iteration:  120
+[1 9 9 ... 1 4 4] [3 9 4 ... 1 4 9]
+0.6663902439024391
+Iteration:  130
+[1 9 9 ... 1 4 4] [3 9 4 ... 1 4 9]
+0.6874878048780488
+Iteration:  140
+[1 9 9 ... 1 4 4] [3 9 4 ... 1 4 9]
+0.7061951219512195
+Iteration:  150
+[1 9 9 ... 1 4 4] [3 9 4 ... 1 4 9]
+0.7205121951219512
+Iteration:  160
+[1 9 9 ... 1 4 4] [3 9 4 ... 1 4 9]
+0.7334878048780488
+Iteration:  170
+[3 9 9 ... 1 4 4] [3 9 4 ... 1 4 9]
+0.7441951219512195
+Iteration:  180
+[3 9 9 ... 1 4 4] [3 9 4 ... 1 4 9]
+0.7554146341463415
+Iteration:  190
+[3 9 9 ... 1 4 4] [3 9 4 ... 1 4 9]
+0.7640731707317073
+Iteration:  200
+[3 9 9 ... 1 4 4] [3 9 4 ... 1 4 9]
+0.7726585365853659
+Iteration:  210
+[3 9 9 ... 1 4 4] [3 9 4 ... 1 4 9]
+0.780219512195122
+Iteration:  220
+[3 9 4 ... 1 4 4] [3 9 4 ... 1 4 9]
+0.7870243902439025
+Iteration:  230
+[3 9 4 ... 1 4 4] [3 9 4 ... 1 4 9]
+0.7925609756097561
+Iteration:  240
+[3 9 4 ... 1 4 4] [3 9 4 ... 1 4 9]
+0.798
+Iteration:  250
+[3 9 4 ... 1 4 4] [3 9 4 ... 1 4 9]
+0.8027560975609757
+Iteration:  260
+[3 9 4 ... 1 4 4] [3 9 4 ... 1 4 9]
+0.8070243902439025
+Iteration:  270
+[3 9 4 ... 1 4 4] [3 9 4 ... 1 4 9]
+0.8110731707317074
+Iteration:  280
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.814780487804878
+Iteration:  290
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.8180975609756097
+Iteration:  300
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.8209024390243902
+Iteration:  310
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.8234878048780487
+Iteration:  320
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.826170731707317
+Iteration:  330
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.8286829268292683
+Iteration:  340
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.831170731707317
+Iteration:  350
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.8336097560975609
+Iteration:  360
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.8361219512195122
+Iteration:  370
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.8382195121951219
+Iteration:  380
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.8406341463414634
+Iteration:  390
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.842609756097561
+Iteration:  400
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.8445609756097561
+Iteration:  410
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.846170731707317
+Iteration:  420
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.8479756097560975
+Iteration:  430
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.8495121951219512
+Iteration:  440
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.8505365853658536
+Iteration:  450
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.8522682926829268
+Iteration:  460
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.8534634146341463
+Iteration:  470
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.8545365853658536
+Iteration:  480
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.8555365853658536
+Iteration:  490
+[3 9 4 ... 1 4 9] [3 9 4 ... 1 4 9]
+0.8569024390243902
+def make_predictions(X, W1, b1, W2, b2):
+    _, _, _, A2 = forward_prop(W1, b1, W2, b2, X)
+    predictions = get_predictions(A2)
+    return predictions
+
+def test_prediction(index, W1, b1, W2, b2):
+    current_image = X_train[:, index, None]
+    prediction = make_predictions(X_train[:, index, None], W1, b1, W2, b2)
+    label = Y_train[index]
+    print("Prediction: ", prediction)
+    print("Label: ", label)
+    
+    current_image = current_image.reshape((28, 28)) * 255
+    plt.gray()
+    plt.imshow(current_image, interpolation='nearest')
+    plt.show()
+test_prediction(0, W1, b1, W2, b2)
+test_prediction(1, W1, b1, W2, b2)
+test_prediction(2, W1, b1, W2, b2)
+test_prediction(3, W1, b1, W2, b2)
+Prediction:  [3]
+Label:  3
+
+Prediction:  [9]
+Label:  9
+
+Prediction:  [4]
+Label:  4
+
+Prediction:  [4]
+Label:  3
+
+dev_predictions = make_predictions(X_dev, W1, b1, W2, b2)
+get_accuracy(dev_predictions, Y_dev)
+[6 3 9 9 3 0 1 8 0 8 3 5 4 1 6 1 0 0 9 5 8 2 6 0 4 3 0 8 9 7 9 9 8 0 6 3 7
+ 1 0 8 9 3 9 4 1 9 1 1 3 0 1 7 6 1 1 2 3 9 1 2 9 0 3 3 1 5 3 6 7 9 1 4 2 9
+ 2 0 0 0 4 6 5 5 3 4 2 0 8 2 8 2 1 6 6 5 8 0 5 8 1 0 1 0 9 7 2 3 4 9 7 7 3
+ 0 6 2 7 1 9 7 5 7 6 2 8 3 6 3 5 6 5 3 4 2 5 5 6 8 1 1 3 1 2 4 6 1 6 9 9 8
+ 0 5 7 1 7 0 0 3 6 3 1 3 1 9 2 4 2 3 1 7 5 3 8 6 7 4 0 7 5 4 1 8 2 1 0 9 8
+ 1 8 6 9 2 3 3 8 1 4 9 5 4 6 5 9 0 2 5 6 4 4 8 5 5 7 8 6 2 0 9 7 2 5 9 7 9
+ 7 8 1 6 2 1 7 3 7 5 4 3 1 3 4 7 2 0 0 8 1 5 0 2 7 1 5 6 0 7 4 6 8 7 0 1 6
+ 1 2 3 4 4 7 1 6 7 4 5 1 1 1 1 0 0 8 8 6 7 7 2 3 2 7 0 7 7 6 7 9 3 2 5 3 6
+ 5 1 9 8 2 5 2 8 4 3 6 8 2 2 0 2 4 8 1 0 5 4 7 2 9 6 0 3 6 4 5 5 0 6 5 6 8
+ 2 7 2 9 8 1 9 7 1 6 2 7 8 2 5 8 7 5 3 3 4 3 2 8 1 1 8 8 4 5 4 6 6 2 6 8 7
+ 1 8 2 0 4 0 3 5 9 6 8 3 1 9 6 7 9 1 0 9 2 1 6 1 1 5 3 6 7 1 7 2 5 8 5 3 3
+ 3 8 0 8 2 6 8 2 3 6 2 9 2 9 1 6 5 2 9 8 2 7 1 1 8 6 9 5 3 5 4 9 3 2 9 7 7
+ 0 7 3 4 0 6 1 5 0 8 1 1 9 0 7 4 4 8 0 2 4 7 1 7 0 1 9 3 4 2 3 3 4 8 7 9 7
+ 0 9 1 6 2 6 5 3 3 2 2 7 1 4 4 1 6 1 3 9 7 2 8 0 7 9 3 9 7 2 8 2 6 7 4 8 1
+ 7 4 1 1 8 8 4 7 9 8 7 6 5 8 2 7 6 9 2 9 2 4 2 1 8 8 7 6 1 5 7 8 3 4 3 9 8
+ 6 0 5 1 8 0 1 8 3 3 3 7 3 1 6 0 5 1 0 7 7 9 9 1 8 2 5 7 5 1 8 2 1 7 3 1 9
+ 5 6 0 1 3 3 9 3 4 4 7 8 6 7 1 3 3 3 6 3 2 4 5 4 9 4 6 8 1 8 8 0 5 7 7 4 8
+ 1 7 6 8 5 2 8 9 7 2 0 9 2 9 4 3 9 8 7 4 0 8 0 8 5 6 6 3 4 0 5 4 0 1 0 9 0
+ 9 0 9 1 7 5 4 0 3 0 8 8 2 7 6 3 2 7 4 2 5 0 3 0 1 0 5 3 4 2 9 1 6 0 1 8 7
+ 1 8 2 7 4 1 1 5 4 7 5 7 1 8 8 6 3 3 5 9 8 3 1 0 6 5 4 3 9 8 6 1 7 6 9 2 5
+ 2 6 0 6 1 8 0 1 6 2 8 7 3 0 8 4 2 3 3 8 7 0 8 9 9 7 1 0 1 3 2 3 3 7 8 4 9
+ 8 7 6 9 9 0 2 6 4 8 3 4 7 9 2 5 5 9 3 9 3 8 4 0 9 5 9 0 8 3 1 9 5 2 1 9 8
+ 5 1 9 0 6 4 6 7 3 6 8 8 2 7 6 2 1 8 4 2 8 3 6 4 2 7 9 7 1 5 5 5 2 4 6 9 1
+ 8 4 9 5 5 9 4 1 0 9 6 2 7 3 7 5 4 1 5 9 7 1 6 1 5 3 1 2 1 7 5 3 1 1 6 0 0
+ 6 6 1 7 2 8 1 6 8 3 6 9 0 8 7 7 9 7 3 2 5 6 4 6 1 3 4 0 7 5 1 6 5 2 6 0 2
+ 7 6 3 5 7 0 1 0 6 8 7 1 9 0 7 0 9 6 1 4 4 1 6 3 5 4 7 7 4 5 6 9 8 1 6 7 7
+ 0 6 6 6 9 9 7 4 6 6 0 1 5 9 0 0 0 1 7 2 0 0 3 1 1 6 5 9 8 1 0 2 9 7 0 3 6
+ 0] [6 3 9 9 3 0 1 8 0 8 3 5 4 1 6 1 0 0 9 5 8 2 6 0 4 3 0 8 9 7 4 9 8 0 6 9 7
+ 1 0 8 9 3 9 4 1 9 1 1 3 5 1 7 6 1 1 5 3 9 1 2 9 0 3 3 1 5 3 6 7 5 1 9 2 9
+ 2 0 0 0 4 6 5 7 3 4 8 0 2 3 8 2 1 6 6 8 5 0 5 2 1 0 1 0 9 7 0 3 4 4 7 7 3
+ 0 6 2 7 1 8 7 5 7 6 2 8 3 6 3 0 6 5 3 4 2 5 5 6 8 7 1 3 1 2 4 6 1 5 9 9 8
+ 7 5 7 1 7 0 0 3 6 3 1 5 1 9 2 4 2 3 1 7 5 3 8 6 7 4 0 3 5 8 1 3 8 1 0 9 8
+ 1 8 6 9 2 3 3 8 1 4 9 5 4 8 5 4 6 2 5 6 4 4 8 0 5 7 8 6 2 0 9 7 2 3 9 7 9
+ 7 8 1 6 2 1 7 3 7 8 4 3 1 3 4 7 2 0 0 8 1 5 0 2 7 1 5 6 0 7 4 5 8 7 0 1 6
+ 1 2 3 4 4 7 1 6 4 4 5 1 1 1 1 0 0 5 6 6 4 7 6 3 2 7 0 7 7 6 7 9 5 2 5 3 6
+ 5 1 9 8 2 5 2 8 2 8 6 8 2 6 0 2 4 8 1 0 6 4 7 2 9 2 0 3 6 6 5 5 0 6 5 6 8
+ 2 7 2 9 5 1 9 7 1 6 2 7 8 2 5 8 7 5 3 8 4 3 2 8 1 6 8 8 4 5 4 6 6 2 6 8 7
+ 1 8 2 2 4 0 3 5 9 6 8 3 1 9 6 7 9 1 6 9 0 1 6 1 1 5 3 6 3 1 7 2 5 8 5 3 8
+ 3 5 0 8 2 6 8 2 3 6 2 9 2 9 1 6 5 8 9 8 2 9 1 8 8 6 9 3 9 5 7 9 3 2 9 7 7
+ 0 7 3 4 0 6 1 0 0 1 1 4 9 0 7 4 4 8 0 2 4 7 1 7 0 1 9 3 4 2 3 3 4 4 3 9 7
+ 0 9 4 6 2 6 5 3 3 2 2 7 1 4 9 1 6 1 3 9 7 2 8 0 7 3 5 9 9 2 8 2 6 7 9 8 1
+ 7 4 1 1 8 8 4 7 9 8 7 6 5 8 2 7 6 9 2 4 2 4 2 1 1 1 7 6 1 5 7 8 3 4 3 4 8
+ 6 0 8 1 8 0 1 8 1 3 3 9 3 1 6 0 5 1 0 7 7 2 9 1 8 2 5 7 5 1 8 2 1 7 3 1 9
+ 1 6 0 1 3 3 9 3 4 4 7 8 6 7 1 3 3 3 6 3 2 4 5 4 9 4 6 8 1 0 8 0 5 9 3 4 5
+ 1 5 6 8 4 2 8 9 7 8 0 4 2 9 6 3 9 8 7 4 0 8 0 8 5 6 6 2 4 0 5 2 6 1 0 9 0
+ 7 5 9 1 7 5 4 0 3 0 8 8 2 7 6 3 2 7 4 2 3 0 3 0 1 0 5 3 4 2 9 1 6 0 1 5 7
+ 1 8 2 7 4 1 1 8 4 7 5 7 1 9 8 4 3 3 5 9 8 3 1 0 6 5 4 8 9 5 6 1 7 6 9 2 3
+ 2 6 0 6 1 9 5 1 6 3 8 7 3 0 8 9 4 3 3 8 7 0 8 9 4 7 1 0 1 3 6 3 3 7 8 4 9
+ 8 0 6 9 9 0 2 6 4 8 3 4 8 5 2 5 5 2 3 9 3 8 4 0 4 5 9 8 8 8 1 9 5 2 1 9 8
+ 5 1 9 0 6 4 6 7 3 6 8 5 2 7 6 2 2 8 4 2 8 3 6 4 2 7 9 7 1 5 8 3 6 4 6 7 1
+ 8 9 9 5 5 9 4 1 0 9 6 2 7 3 7 5 4 1 5 9 7 1 6 1 5 3 1 2 1 7 5 3 1 1 5 0 3
+ 6 6 1 7 2 8 1 6 3 3 6 9 0 8 7 7 9 7 3 2 6 6 4 4 1 3 4 0 7 5 1 6 5 2 6 0 2
+ 7 6 5 5 7 0 1 9 6 8 7 1 9 0 7 3 9 6 1 4 4 1 6 3 5 4 5 7 9 5 6 9 8 1 6 7 7
+ 0 6 2 6 9 9 7 4 6 6 0 1 0 9 0 0 2 1 5 2 0 0 3 1 8 6 5 9 8 1 0 2 9 7 0 3 6
+ 0]
+0.863
